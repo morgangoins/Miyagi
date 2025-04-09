@@ -128,13 +128,12 @@ app.get('/profile', async (req, res) => {
         <style>
           body {
             margin: 0;
+            min-height: 100vh;
             font-family: Arial, sans-serif;
-            padding: 20px;
+            position: relative;
+            padding: 0;
           }
           .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             padding: 20px;
             border-bottom: 1px solid #eee;
           }
@@ -142,27 +141,46 @@ app.get('/profile', async (req, res) => {
             font-size: 48px;
             color: #333;
             text-decoration: none;
+            font-family: Arial, sans-serif;
           }
           .user-info {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             position: fixed;
             bottom: 20px;
             left: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 25px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
           }
           .profile-img {
             width: 40px;
             height: 40px;
             border-radius: 50%;
+            border: 2px solid #eee;
+          }
+          .user-name {
+            font-size: 16px;
+            color: #333;
           }
           .logout {
             position: fixed;
             bottom: 20px;
             right: 20px;
+            padding: 8px 16px;
+            background: #f8f9fa;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            color: #3c4043;
+            text-decoration: none;
+          }
+          .logout:hover {
+            background: #f1f3f4;
           }
           .content {
-            margin-top: 40px;
+            padding: 40px;
           }
         </style>
       </head>
@@ -176,9 +194,9 @@ app.get('/profile', async (req, res) => {
         </div>
         <div class="user-info">
           <img src="${req.user.photos[0].value}" class="profile-img" alt="Profile">
-          <span>${req.user.name.givenName}</span>
+          <span class="user-name">${req.user.name.givenName}</span>
         </div>
-        <a href="/logout" class="logout">Logout</a>
+        <a href="/logout" class="logout">Sign out</a>
       </body>
       </html>
     `);
