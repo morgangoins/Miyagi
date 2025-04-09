@@ -3,9 +3,7 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const session = require('express-session');
 const path = require('path');
-const fs = require('fs');
 require('dotenv').config();
-const expressSession = require('express-session');
 const { Pool } = require('pg');
 
 const pool = new Pool({
@@ -18,41 +16,8 @@ const pool = new Pool({
 const app = express();
 const PORT = process.env.PORT || 8000;
 
-// Monkey patch for compatibility
-const originalSessionMethod = expressSession;
-const compatibilityFix = function(options) {
-  const instance = originalSessionMethod(options);
-  
-  // Add regenerate and save methods if they don't exist
-  const patchedInstance = (req, res, next) => {
-    const originalSession = req.session;
-    
-    instance(req, res, () => {
-      if (originalSession && typeof originalSession.regenerate !== 'function') {
-        originalSession.regenerate = function(cb) {
-          if (typeof cb === 'function') {
-            cb();
-          }
-        };
-      }
-      
-      if (originalSession && typeof originalSession.save !== 'function') {
-        originalSession.save = function(cb) {
-          if (typeof cb === 'function') {
-            cb();
-          }
-        };
-      }
-      
-      next();
-    });
-  };
-  
-  return patchedInstance;
-};
-
-// Use the patched version
-app.use(compatibilityFix({
+// Configure session before passport
+app.use(session({
   secret: process.env.SESSION_SECRET || 'your_session_secret',
   resave: false,
   saveUninitialized: false,
@@ -100,17 +65,24 @@ app.get('/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 app.get('/auth/google/callback', 
-  passport.authenticate('google', { 
-    failureRedirect: '/',
-    successRedirect: '/profile'
-  })
+  passport.authenticate('google', { failureRedirect: '/' }),
+  (req, res) => {
+    req.session.save(() => {
+      res.redirect('/profile');
+    });
+  }
 );
 
-// Protected route
-app.get('/profile', async (req, res) => {
-  if (!req.isAuthenticated()) {
-    return res.redirect('/');
+// Middleware to check authentication
+const ensureAuthenticated = (req, res, next) => {
+  if (req.isAuthenticated()) {
+    return next();
   }
+  res.redirect('/');
+};
+
+// Protected route
+app.get('/profile', ensureAuthenticated, async (req, res) => {
   
   try {
     const result = await pool.query(
