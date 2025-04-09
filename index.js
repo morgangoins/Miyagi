@@ -7,7 +7,7 @@ require('dotenv').config();
 const expressSession = require('express-session');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8000;
 
 // Monkey patch for compatibility
 const originalSessionMethod = expressSession;
