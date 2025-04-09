@@ -5,6 +5,14 @@ const session = require('express-session');
 const path = require('path');
 require('dotenv').config();
 const expressSession = require('express-session');
+const { Pool } = require('pg');
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -69,9 +77,17 @@ passport.use(new GoogleStrategy({
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: process.env.CALLBACK_URL || "http://localhost:3000/auth/google/callback"
   },
-  (accessToken, refreshToken, profile, done) => {
-    // Here you would typically find or create a user in your database
-    return done(null, profile);
+  async (accessToken, refreshToken, profile, done) => {
+    try {
+      await pool.query(
+        'INSERT INTO login_history (user_id, email) VALUES ($1, $2)',
+        [profile.id, profile.emails[0].value]
+      );
+      return done(null, profile);
+    } catch (err) {
+      console.error('Error logging login:', err);
+      return done(null, profile);
+    }
   }
 ));
 
@@ -90,11 +106,31 @@ app.get('/auth/google/callback',
 );
 
 // Protected route
-app.get('/profile', (req, res) => {
+app.get('/profile', async (req, res) => {
   if (!req.isAuthenticated()) {
     return res.redirect('/');
   }
-  res.send(`<h1>Hello, ${req.user.displayName}</h1><a href="/logout">Logout</a>`);
+  
+  try {
+    const result = await pool.query(
+      'SELECT * FROM login_history WHERE user_id = $1 ORDER BY login_time DESC LIMIT 5',
+      [req.user.id]
+    );
+    
+    const loginHistory = result.rows.map(row => {
+      return `${new Date(row.login_time).toLocaleString()}`;
+    }).join('<br>');
+    
+    res.send(`
+      <h1>Hello, ${req.user.displayName}</h1>
+      <h2>Your Recent Logins:</h2>
+      <p>${loginHistory}</p>
+      <a href="/logout">Logout</a>
+    `);
+  } catch (err) {
+    console.error('Error fetching login history:', err);
+    res.send(`<h1>Hello, ${req.user.displayName}</h1><a href="/logout">Logout</a>`);
+  }
 });
 
 // Updated Logout route compatible with newer Passport versions
