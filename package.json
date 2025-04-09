@@ -12,9 +12,11 @@
   "dependencies": {
     "@types/node": "^22.13.11",
     "cookie-session": "^2.1.0",
-    "express": "^5.1.0",
-    "passport": "^0.7.0",
-    "passport-google-oauth20": "^2.0.0",
+    "dotenv": "^latest",
+    "express": "^latest",
+    "express-session": "^latest",
+    "passport": "^latest",
+    "passport-google-oauth20": "^latest",
     "pg": "^8.14.1"
   }
 }
