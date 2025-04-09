@@ -120,86 +120,19 @@ app.get('/profile', async (req, res) => {
     const loginHistory = result.rows.map(row => {
       return `${new Date(row.login_time).toLocaleString()}`;
     }).join('<br>');
+
+    // Read the template file
+    let template = await require('fs').promises.readFile('public/profile.html', 'utf8');
     
-    res.send(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body {
-            margin: 0;
-            min-height: 100vh;
-            font-family: Arial, sans-serif;
-            position: relative;
-            padding: 0;
-          }
-          .header {
-            padding: 20px;
-            border-bottom: 1px solid #eee;
-          }
-          .logo {
-            font-size: 48px;
-            color: #333;
-            text-decoration: none;
-            font-family: Arial, sans-serif;
-          }
-          .user-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            background: white;
-            padding: 10px;
-            border-radius: 25px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-          }
-          .profile-img {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: 2px solid #eee;
-          }
-          .user-name {
-            font-size: 16px;
-            color: #333;
-          }
-          .logout {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 8px 16px;
-            background: #f8f9fa;
-            border: 1px solid #dadce0;
-            border-radius: 4px;
-            color: #3c4043;
-            text-decoration: none;
-          }
-          .logout:hover {
-            background: #f1f3f4;
-          }
-          .content {
-            padding: 40px;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <a href="/" class="logo">Miyagi</a>
-        </div>
-        <div class="content">
-          <h2>Your Recent Logins:</h2>
-          <p>${loginHistory}</p>
-        </div>
-        <div class="user-info">
-          <img src="${req.user.photos[0].value}" class="profile-img" alt="Profile">
-          <span class="user-name">${req.user.name.givenName}</span>
-        </div>
-        <a href="/logout" class="logout">Sign out</a>
-      </body>
-      </html>
-    `);
+    // Replace the placeholder with user data
+    const userData = {
+      photoUrl: req.user.photos[0].value,
+      firstName: req.user.name.givenName,
+      loginHistory: loginHistory
+    };
+    
+    template = template.replace('{USERDATA}', JSON.stringify(userData));
+    res.send(template);
   } catch (err) {
     console.error('Error fetching login history:', err);
     res.send(`<h1>Hello, ${req.user.displayName}</h1><a href="/logout">Logout</a>`);
