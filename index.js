@@ -122,10 +122,65 @@ app.get('/profile', async (req, res) => {
     }).join('<br>');
     
     res.send(`
-      <h1>Hello, ${req.user.displayName}</h1>
-      <h2>Your Recent Logins:</h2>
-      <p>${loginHistory}</p>
-      <a href="/logout">Logout</a>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+          }
+          .logo {
+            font-size: 48px;
+            color: #333;
+            text-decoration: none;
+          }
+          .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+          }
+          .profile-img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+          }
+          .logout {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+          }
+          .content {
+            margin-top: 40px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <a href="/" class="logo">Miyagi</a>
+        </div>
+        <div class="content">
+          <h2>Your Recent Logins:</h2>
+          <p>${loginHistory}</p>
+        </div>
+        <div class="user-info">
+          <img src="${req.user.photos[0].value}" class="profile-img" alt="Profile">
+          <span>${req.user.name.givenName}</span>
+        </div>
+        <a href="/logout" class="logout">Logout</a>
+      </body>
+      </html>
     `);
   } catch (err) {
     console.error('Error fetching login history:', err);
