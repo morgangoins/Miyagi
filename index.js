@@ -164,10 +164,20 @@ app.get('/profile', ensureAuthenticated, async (req, res) => {
 // API endpoint to get user data
 app.get('/api/user-data', ensureAuthenticated, async (req, res) => {
   try {
+    // Add debug logging
+    console.log('API User object:', req.user);
+    
+    if (!req.user || !req.user.id) {
+      console.error('Invalid user object in API');
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
     const result = await pool.query(
       'SELECT * FROM login_history WHERE user_id = $1 ORDER BY login_time DESC LIMIT 5',
       [req.user.id]
     );
+    
+    console.log('Login history query result:', result.rows);
     
     const loginHistory = result.rows.map(row => {
       return `${new Date(row.login_time).toLocaleString()}`;
@@ -176,13 +186,15 @@ app.get('/api/user-data', ensureAuthenticated, async (req, res) => {
     const userData = {
       photoUrl: req.user.photo || 'https://www.gravatar.com/avatar/?d=mp',
       firstName: req.user.displayName || 'User',
-      loginHistory: loginHistory || 'No login history available'
+      loginHistory: loginHistory || 'No login history available',
+      email: req.user.email || 'No email available'
     };
 
+    console.log('Sending user data:', userData);
     res.json(userData);
   } catch (err) {
     console.error('Error fetching user data:', err);
-    res.status(500).json({ error: 'Failed to fetch user data' });
+    res.status(500).json({ error: 'Failed to fetch user data', details: err.message });
   }
 });
 

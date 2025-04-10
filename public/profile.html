@@ -81,15 +81,28 @@
   <script>
     // Fetch user data from the server
     fetch('/api/user-data')
-      .then(response => response.json())
+      .then(async response => {
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to load profile');
+        }
+        return response.json();
+      })
       .then(data => {
+        if (!data || !data.firstName) {
+          throw new Error('Invalid user data received');
+        }
         document.getElementById('profileImg').src = data.photoUrl;
         document.getElementById('userName').textContent = data.firstName;
         document.getElementById('loginHistory').innerHTML = data.loginHistory;
+        console.log('Profile loaded successfully:', data);
       })
       .catch(error => {
-        console.error('Error:', error);
-        document.getElementById('loginHistory').innerHTML = 'Error loading user data';
+        console.error('Error loading profile:', error);
+        document.getElementById('loginHistory').innerHTML = `Error loading profile: ${error.message}`;
+        // Set default values for critical UI elements
+        document.getElementById('profileImg').src = 'https://www.gravatar.com/avatar/?d=mp';
+        document.getElementById('userName').textContent = 'User';
       });
   </script>
 </body>
