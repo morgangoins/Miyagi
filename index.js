@@ -141,13 +141,23 @@ app.get('/profile', ensureAuthenticated, async (req, res) => {
       loginHistory: loginHistory || 'No login history'
     };
 
-    // Read the profile template
-    const template = fs.readFileSync(path.join(__dirname, 'public', 'profile.html'), 'utf8');
-    
-    // Replace the placeholder with stringified user data
-    const html = template.replace('{USERDATA}', JSON.stringify(userData));
-    
-    res.send(html);
+    try {
+      // Read the profile template
+      const template = fs.readFileSync(path.join(__dirname, 'public', 'profile.html'), 'utf8');
+      if (!template) {
+        throw new Error('Profile template not found');
+      }
+      
+      // Replace the placeholder with stringified user data
+      const html = template.replace('{USERDATA}', JSON.stringify(userData));
+      
+      res.send(html);
+    } catch (templateErr) {
+      console.error('Template error:', templateErr);
+      console.error('Template path:', path.join(__dirname, 'public', 'profile.html'));
+      console.error('User data:', userData);
+      res.status(500).send('Error loading profile template');
+    }
   } catch (err) {
     console.error('Error in profile route:', err);
     console.error('Current user data:', JSON.stringify(req.user, null, 2));
