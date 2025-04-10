@@ -54,18 +54,26 @@ passport.deserializeUser((user, done) => {
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.CALLBACK_URL || "http://localhost:3000/auth/google/callback"
+    callbackURL: process.env.CALLBACK_URL || "http://localhost:8000/auth/google/callback"
   },
   async (accessToken, refreshToken, profile, done) => {
     try {
+      console.log('Google profile:', JSON.stringify(profile));
+      const user = {
+        id: profile.id,
+        email: profile.emails[0].value,
+        name: profile.displayName,
+        firstName: profile.name.givenName,
+        photos: profile.photos
+      };
       await pool.query(
         'INSERT INTO login_history (user_id, email) VALUES ($1, $2)',
-        [profile.id, profile.emails[0].value]
+        [user.id, user.email]
       );
-      return done(null, profile);
+      return done(null, user);
     } catch (err) {
-      console.error('Error logging login:', err);
-      return done(null, profile);
+      console.error('Error in Google Strategy:', err);
+      return done(err, null);
     }
   }
 ));
@@ -114,9 +122,15 @@ app.get('/profile', ensureAuthenticated, async (req, res) => {
   }
 
   try {
-    if (!req.user.id || !req.user.photos || !req.user.name) {
-      console.error('Incomplete user profile:', req.user);
-      return res.status(500).send('Incomplete user profile data');
+    // More detailed error checking
+    if (!req.user) {
+      console.error('No user object');
+      return res.status(500).send('No user data available');
+    }
+    
+    if (!req.user.id) {
+      console.error('No user ID:', req.user);
+      return res.status(500).send('Missing user ID');
     }
 
     const result = await pool.query(
