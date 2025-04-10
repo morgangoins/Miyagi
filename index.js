@@ -54,29 +54,27 @@ passport.deserializeUser((user, done) => {
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.CALLBACK_URL || "http://localhost:8000/auth/google/callback"
+    callbackURL: process.env.CALLBACK_URL || "https://" + process.env.REPL_SLUG + "." + process.env.REPL_OWNER + ".repl.co/auth/google/callback"
   },
   async (accessToken, refreshToken, profile, done) => {
     try {
-      console.log('Google profile:', JSON.stringify(profile));
+      console.log('Google profile received:', profile.id);
       const user = {
         id: profile.id,
-        email: profile.emails[0].value,
-        name: {
-          givenName: profile.name.givenName
-        },
-        photos: [{
-          value: profile.photos[0].value
-        }]
+        email: profile.emails && profile.emails[0] ? profile.emails[0].value : '',
+        displayName: profile.displayName || '',
+        photo: profile.photos && profile.photos[0] ? profile.photos[0].value : ''
       };
+      
       await pool.query(
         'INSERT INTO login_history (user_id, email) VALUES ($1, $2)',
         [user.id, user.email]
       );
+      
       return done(null, user);
     } catch (err) {
       console.error('Error in Google Strategy:', err);
-      return done(err, null);
+      return done(null, false, { message: 'Failed to process user profile' });
     }
   }
 ));
@@ -89,21 +87,11 @@ app.get('/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 app.get('/auth/google/callback', 
-  passport.authenticate('google', { failureRedirect: '/' }),
-  (req, res) => {
-    if (!req.user) {
-      console.error('No user data after Google authentication');
-      return res.redirect('/');
-    }
-    console.log('Authentication successful, user:', req.user.id);
-    req.session.save((err) => {
-      if (err) {
-        console.error('Session save error:', err);
-        return res.redirect('/');
-      }
-      res.redirect('/profile');
-    });
-  }
+  passport.authenticate('google', { 
+    failureRedirect: '/',
+    successRedirect: '/profile',
+    failureFlash: true
+  })
 );
 
 // Middleware to check authentication
