@@ -3,6 +3,7 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const session = require('express-session');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 const { Pool } = require('pg');
 
@@ -140,88 +141,13 @@ app.get('/profile', ensureAuthenticated, async (req, res) => {
       loginHistory: loginHistory || 'No login history'
     };
 
-    res.send(`
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Miyagi - Profile</title>
-  <style>
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: Arial, sans-serif;
-      position: relative;
-      padding: 0;
-    }
-    .header {
-      padding: 20px;
-      border-bottom: 1px solid #eee;
-    }
-    .logo {
-      font-size: 48px;
-      color: #333;
-      text-decoration: none;
-      font-family: Arial, sans-serif;
-    }
-    .user-info {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      position: fixed;
-      bottom: 20px;
-      left: 20px;
-      background: white;
-      padding: 10px;
-      border-radius: 25px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .profile-img {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      border: 2px solid #eee;
-    }
-    .user-name {
-      font-size: 16px;
-      color: #333;
-    }
-    .logout {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      padding: 8px 16px;
-      background: #f8f9fa;
-      border: 1px solid #dadce0;
-      border-radius: 4px;
-      color: #3c4043;
-      text-decoration: none;
-    }
-    .logout:hover {
-      background: #f1f3f4;
-    }
-    .content {
-      padding: 40px;
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <a href="/" class="logo">Miyagi</a>
-  </div>
-  <div class="content">
-    <h2>Your Recent Logins:</h2>
-    <p id="loginHistory">${userData.loginHistory}</p>
-  </div>
-  <div class="user-info">
-    <img src="${userData.photoUrl}" class="profile-img" alt="Profile">
-    <span class="user-name">${userData.firstName}</span>
-  </div>
-  <a href="/logout" class="logout">Sign out</a>
-</body>
-</html>
-    `);
+    // Read the profile template
+    const template = fs.readFileSync(path.join(__dirname, 'public', 'profile.html'), 'utf8');
+    
+    // Replace the placeholder with stringified user data
+    const html = template.replace('{USERDATA}', JSON.stringify(userData));
+    
+    res.send(html);
   } catch (err) {
     console.error('Error in profile route:', err);
     console.error('Current user data:', JSON.stringify(req.user, null, 2));
