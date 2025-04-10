@@ -59,11 +59,12 @@ passport.use(new GoogleStrategy({
   async (accessToken, refreshToken, profile, done) => {
     try {
       console.log('Google profile received:', profile.id);
+      console.log('Full profile:', JSON.stringify(profile, null, 2));
       const user = {
         id: profile.id,
-        email: profile.emails && profile.emails[0] ? profile.emails[0].value : '',
-        displayName: profile.displayName || '',
-        photo: profile.photos && profile.photos[0] ? profile.photos[0].value : ''
+        email: profile.emails?.[0]?.value || '',
+        displayName: profile.name?.givenName || profile.displayName || '',
+        photo: profile.photos?.[0]?.value || ''
       };
       
       await pool.query(
@@ -223,6 +224,7 @@ app.get('/profile', ensureAuthenticated, async (req, res) => {
     `);
   } catch (err) {
     console.error('Error in profile route:', err);
+    console.error('Current user data:', JSON.stringify(req.user, null, 2));
     res.status(500).send('Error loading profile');
   }
 });
