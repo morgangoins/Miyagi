@@ -77,7 +77,16 @@ app.get('/auth/google',
 app.get('/auth/google/callback', 
   passport.authenticate('google', { failureRedirect: '/' }),
   (req, res) => {
-    req.session.save(() => {
+    if (!req.user) {
+      console.error('No user data after Google authentication');
+      return res.redirect('/');
+    }
+    console.log('Authentication successful, user:', req.user.id);
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+        return res.redirect('/');
+      }
       res.redirect('/profile');
     });
   }
@@ -94,16 +103,23 @@ const ensureAuthenticated = (req, res, next) => {
 // Protected route
 app.get('/profile', ensureAuthenticated, async (req, res) => {
   if (!req.user) {
-    console.error('User object is missing in request');
+    console.error('User object missing in request');
     return res.status(401).send('Authentication required');
   }
 
-  console.log('User data:', req.user);
+  console.log('Full user object:', JSON.stringify(req.user, null, 2));
   
   try {
+    // Google OAuth provides the ID in profile.id
+    const userId = req.user.id;
+    if (!userId) {
+      console.error('User ID missing from profile');
+      return res.status(500).send('Profile data incomplete');
+    }
+
     const result = await pool.query(
       'SELECT * FROM login_history WHERE user_id = $1 ORDER BY login_time DESC LIMIT 5',
-      [req.user.id]
+      [userId]
     );
     
     const loginHistory = result.rows.map(row => {
