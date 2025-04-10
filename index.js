@@ -29,9 +29,12 @@ const PORT = process.env.PORT || 8000;
 // Configure session before passport
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your_session_secret',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { secure: false }
+  resave: true,
+  saveUninitialized: true,
+  cookie: { 
+    secure: false,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
 }));
 
 // Initialize Passport
@@ -102,24 +105,23 @@ const ensureAuthenticated = (req, res, next) => {
 
 // Protected route
 app.get('/profile', ensureAuthenticated, async (req, res) => {
-  if (!req.user) {
-    console.error('User object missing in request');
-    return res.status(401).send('Authentication required');
+  console.log('Session:', req.session);
+  console.log('User:', req.user);
+  
+  if (!req.isAuthenticated() || !req.user) {
+    console.error('Authentication failed');
+    return res.redirect('/');
   }
 
-  console.log('Full user object:', JSON.stringify(req.user, null, 2));
-  
   try {
-    // Google OAuth provides the ID in profile.id
-    const userId = req.user.id;
-    if (!userId) {
-      console.error('User ID missing from profile');
-      return res.status(500).send('Profile data incomplete');
+    if (!req.user.id || !req.user.photos || !req.user.name) {
+      console.error('Incomplete user profile:', req.user);
+      return res.status(500).send('Incomplete user profile data');
     }
 
     const result = await pool.query(
       'SELECT * FROM login_history WHERE user_id = $1 ORDER BY login_time DESC LIMIT 5',
-      [userId]
+      [req.user.id]
     );
     
     const loginHistory = result.rows.map(row => {
