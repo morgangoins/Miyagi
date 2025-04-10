@@ -134,8 +134,8 @@ app.get('/profile', ensureAuthenticated, async (req, res) => {
     }).join('<br>');
 
     const userData = {
-      photoUrl: req.user.photos ? req.user.photos[0].value : '',
-      firstName: req.user.name ? req.user.name.givenName : 'User',
+      photoUrl: req.user.photo || '',
+      firstName: req.user.displayName || 'User',
       loginHistory: loginHistory || 'No login history'
     };
 
