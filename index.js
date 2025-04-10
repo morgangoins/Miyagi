@@ -62,9 +62,12 @@ passport.use(new GoogleStrategy({
       const user = {
         id: profile.id,
         email: profile.emails[0].value,
-        name: profile.displayName,
-        firstName: profile.name.givenName,
-        photos: profile.photos
+        name: {
+          givenName: profile.name.givenName
+        },
+        photos: [{
+          value: profile.photos[0].value
+        }]
       };
       await pool.query(
         'INSERT INTO login_history (user_id, email) VALUES ($1, $2)',
@@ -143,9 +146,9 @@ app.get('/profile', ensureAuthenticated, async (req, res) => {
     }).join('<br>');
 
     const userData = {
-      photoUrl: req.user.photos[0].value,
-      firstName: req.user.name.givenName,
-      loginHistory: loginHistory
+      photoUrl: req.user.photos ? req.user.photos[0].value : '',
+      firstName: req.user.name ? req.user.name.givenName : 'User',
+      loginHistory: loginHistory || 'No login history'
     };
 
     res.send(`
