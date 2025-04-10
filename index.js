@@ -138,23 +138,21 @@ app.get('/profile', ensureAuthenticated, async (req, res) => {
       return `${new Date(row.login_time).toLocaleString()}`;
     }).join('<br>');
 
+    // Ensure the data matches exactly what the template expects
     const userData = {
-      photoUrl: req.user.photo || '',
+      photoUrl: req.user.photo || 'https://www.gravatar.com/avatar/?d=mp',
       firstName: req.user.displayName || 'User',
-      loginHistory: loginHistory || 'No login history'
+      loginHistory: loginHistory || 'No login history available'
     };
 
-    try {
-      // Read the profile template
-      const template = fs.readFileSync(path.join(__dirname, 'public', 'profile.html'), 'utf8');
-      if (!template) {
-        throw new Error('Profile template not found');
+    // Read and send the template file directly
+    res.sendFile(path.join(__dirname, 'public', 'profile.html'), {}, (err) => {
+      if (err) {
+        console.error('Error sending profile.html:', err);
+        res.status(500).send('Error loading profile page');
+        return;
       }
-      
-      // Replace the placeholder with stringified user data
-      const html = template.replace('{USERDATA}', JSON.stringify(userData));
-      
-      res.send(html);
+    });
     } catch (templateErr) {
       console.error('Template error:', templateErr);
       console.error('Template path:', path.join(__dirname, 'public', 'profile.html'));
@@ -169,6 +167,31 @@ app.get('/profile', ensureAuthenticated, async (req, res) => {
 });
 
 // Updated Logout route compatible with newer Passport versions
+// API endpoint to get user data
+app.get('/api/user-data', ensureAuthenticated, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM login_history WHERE user_id = $1 ORDER BY login_time DESC LIMIT 5',
+      [req.user.id]
+    );
+    
+    const loginHistory = result.rows.map(row => {
+      return `${new Date(row.login_time).toLocaleString()}`;
+    }).join('<br>');
+
+    const userData = {
+      photoUrl: req.user.photo || 'https://www.gravatar.com/avatar/?d=mp',
+      firstName: req.user.displayName || 'User',
+      loginHistory: loginHistory || 'No login history available'
+    };
+
+    res.json(userData);
+  } catch (err) {
+    console.error('Error fetching user data:', err);
+    res.status(500).json({ error: 'Failed to fetch user data' });
+  }
+});
+
 app.get('/logout', function(req, res, next) {
   // Use req.logout with a callback function
   req.logout(function(err) {

@@ -70,20 +70,27 @@
   </div>
   <div class="content">
     <h2>Your Recent Logins:</h2>
-    <p id="loginHistory"></p>
+    <div id="loginHistory"></div>
   </div>
   <div class="user-info">
-    <img id="profileImg" class="profile-img" alt="Profile">
+    <img id="profileImg" src="" class="profile-img" alt="Profile">
     <span id="userName" class="user-name"></span>
   </div>
   <a href="/logout" class="logout">Sign out</a>
+
   <script>
-    // This will be populated by the server
-    window.userData = {USERDATA};
-    
-    document.getElementById('profileImg').src = userData.photoUrl;
-    document.getElementById('userName').textContent = userData.firstName;
-    document.getElementById('loginHistory').innerHTML = userData.loginHistory;
+    // Fetch user data from the server
+    fetch('/api/user-data')
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('profileImg').src = data.photoUrl;
+        document.getElementById('userName').textContent = data.firstName;
+        document.getElementById('loginHistory').innerHTML = data.loginHistory;
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('loginHistory').innerHTML = 'Error loading user data';
+      });
   </script>
 </body>
 </html>
