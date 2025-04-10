@@ -109,12 +109,13 @@ const ensureAuthenticated = (req, res, next) => {
 
 // Protected route
 app.get('/profile', ensureAuthenticated, (req, res) => {
-  if (!req.isAuthenticated() || !req.user) {
-    console.error('Authentication failed');
-    return res.redirect('/');
-  }
-  
-  res.sendFile(path.join(__dirname, 'public', 'profile.html'));
+  try {
+    if (!req.isAuthenticated() || !req.user) {
+      console.error('Authentication failed');
+      return res.redirect('/');
+    }
+    
+    res.sendFile(path.join(__dirname, 'public', 'profile.html'));
   } catch (err) {
     console.error('Error in profile route:', err);
     console.error('Current user data:', JSON.stringify(req.user, null, 2));
