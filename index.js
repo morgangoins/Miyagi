@@ -13,6 +13,16 @@ const pool = new Pool({
   }
 });
 
+// Ensure table exists
+pool.query(`
+  CREATE TABLE IF NOT EXISTS login_history (
+    id SERIAL PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    email TEXT,
+    login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+`).catch(err => console.error('Error creating table:', err));
+
 const app = express();
 const PORT = process.env.PORT || 8000;
 
@@ -83,6 +93,12 @@ const ensureAuthenticated = (req, res, next) => {
 
 // Protected route
 app.get('/profile', ensureAuthenticated, async (req, res) => {
+  if (!req.user) {
+    console.error('User object is missing in request');
+    return res.status(401).send('Authentication required');
+  }
+
+  console.log('User data:', req.user);
   
   try {
     const result = await pool.query(
