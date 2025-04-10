@@ -108,51 +108,13 @@ const ensureAuthenticated = (req, res, next) => {
 };
 
 // Protected route
-app.get('/profile', ensureAuthenticated, async (req, res) => {
-  console.log('Session:', req.session);
-  console.log('User:', req.user);
-  
+app.get('/profile', ensureAuthenticated, (req, res) => {
   if (!req.isAuthenticated() || !req.user) {
     console.error('Authentication failed');
     return res.redirect('/');
   }
-
-  try {
-    // More detailed error checking
-    if (!req.user) {
-      console.error('No user object');
-      return res.status(500).send('No user data available');
-    }
-    
-    if (!req.user.id) {
-      console.error('No user ID:', req.user);
-      return res.status(500).send('Missing user ID');
-    }
-
-    const result = await pool.query(
-      'SELECT * FROM login_history WHERE user_id = $1 ORDER BY login_time DESC LIMIT 5',
-      [req.user.id]
-    );
-    
-    const loginHistory = result.rows.map(row => {
-      return `${new Date(row.login_time).toLocaleString()}`;
-    }).join('<br>');
-
-    // Ensure the data matches exactly what the template expects
-    const userData = {
-      photoUrl: req.user.photo || 'https://www.gravatar.com/avatar/?d=mp',
-      firstName: req.user.displayName || 'User',
-      loginHistory: loginHistory || 'No login history available'
-    };
-
-    // Read and send the template file directly
-    res.sendFile(path.join(__dirname, 'public', 'profile.html'), {}, (err) => {
-      if (err) {
-        console.error('Error sending profile.html:', err);
-        res.status(500).send('Error loading profile page');
-        return;
-      }
-    });
+  
+  res.sendFile(path.join(__dirname, 'public', 'profile.html'));
   } catch (err) {
     console.error('Error in profile route:', err);
     console.error('Current user data:', JSON.stringify(req.user, null, 2));
@@ -164,37 +126,27 @@ app.get('/profile', ensureAuthenticated, async (req, res) => {
 // API endpoint to get user data
 app.get('/api/user-data', ensureAuthenticated, async (req, res) => {
   try {
-    // Add debug logging
-    console.log('API User object:', req.user);
-    
-    if (!req.user || !req.user.id) {
-      console.error('Invalid user object in API');
-      return res.status(401).json({ error: 'User not authenticated' });
+    if (!req.user) {
+      return res.status(401).json({ error: 'Not authenticated' });
     }
 
     const result = await pool.query(
       'SELECT * FROM login_history WHERE user_id = $1 ORDER BY login_time DESC LIMIT 5',
       [req.user.id]
     );
-    
-    console.log('Login history query result:', result.rows);
-    
-    const loginHistory = result.rows.map(row => {
-      return `${new Date(row.login_time).toLocaleString()}`;
-    }).join('<br>');
 
-    const userData = {
+    const loginHistory = result.rows.map(row => 
+      new Date(row.login_time).toLocaleString()
+    ).join('<br>') || 'No login history available';
+
+    res.json({
       photoUrl: req.user.photo || 'https://www.gravatar.com/avatar/?d=mp',
-      firstName: req.user.displayName || 'User',
-      loginHistory: loginHistory || 'No login history available',
-      email: req.user.email || 'No email available'
-    };
-
-    console.log('Sending user data:', userData);
-    res.json(userData);
+      firstName: req.user.displayName || 'Anonymous',
+      loginHistory
+    });
   } catch (err) {
-    console.error('Error fetching user data:', err);
-    res.status(500).json({ error: 'Failed to fetch user data', details: err.message });
+    console.error('API Error:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
